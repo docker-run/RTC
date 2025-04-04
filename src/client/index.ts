@@ -6,7 +6,8 @@ export function clientStateRoute(service: SportsEventsService) {
 
   // TODO error handling
   router.get('/client/state', async (req, res) => {
-    res.status(200).json({});
+    const events = await service.getCurrentEvents();
+    res.status(200).json(events);
   });
 
   return router;
