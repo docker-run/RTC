@@ -1,9 +1,10 @@
-interface AppConfig {
-  pollingIntervalMs: number;
-  mappingsApi: string;
-  sportsEventsApi: string;
-}
+import express from 'express';
+import { clientStateRoute } from './client';
 
-function createApp() {
-  // TODO: add simple express server
+export function createApp(): express.Express {
+  const app = express();
+
+  app.use('/', clientStateRoute({} as any));
+
+  return app;
 }

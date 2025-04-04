@@ -1,7 +1,7 @@
-type FetchEventsFn = () => Promise<{ odds?: string }>;
-type FetchMappingsFn = () => Promise<{ mappings?: string }>;
+export type FetchEventsFn = () => Promise<{ odds?: string }>;
+export type FetchMappingsFn = () => Promise<{ mappings?: string }>;
 
-interface AppConfig {
+export interface AppConfig {
   pollingIntervalMs: number;
   mappingsApi: string;
   sportsEventsApi: string;
