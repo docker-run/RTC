@@ -1,3 +1,6 @@
+import express from 'express';
+
 export function clientStateRoute() {
-  // TODO: current app state endpoint should be defined here
+  const router = express.Router();
+  return router;
 }
