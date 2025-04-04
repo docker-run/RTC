@@ -6,3 +6,10 @@ type SportsEventsServiceArgs = {
   eventStore: {};
   historicalEventStore: {};
 }
+
+export class SportsEventsService {
+
+  public getCurrentEvents() {
+
+  }
+}
