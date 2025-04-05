@@ -33,7 +33,6 @@ interface IHistoricalEventStore {
   getAll(): Record<string, SportEvent>;
 }
 
-
 export class HistoricalEventStore implements IHistoricalEventStore {
   private store: Record<string, SportEvent> = {};
 
@@ -46,10 +45,11 @@ export class HistoricalEventStore implements IHistoricalEventStore {
   }
 }
 
-interface ITemporalMappingStore {
+export interface ITemporalMappingStore {
   set(id: string, value: string): void;
   get(id: string, timestamp?: string): string | undefined;
   getVersionAt(id: string, timestamp: string): string | undefined;
+  destroy(): void;
 }
 
 export class TemporalMappingStore implements ITemporalMappingStore {

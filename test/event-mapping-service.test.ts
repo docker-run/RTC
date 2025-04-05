@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { EventMappingService } from '../src/event-mapping-service';
 import { TemporalMappingStore } from '../src/storage';
+import { Logger } from '../src/logger';
 
 describe('EventMappingService', () => {
   let service: EventMappingService;
@@ -8,24 +9,35 @@ describe('EventMappingService', () => {
   let mockFetchMappings: any;
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.clearAllMocks();
     mockStore = new TemporalMappingStore(10000, 5000);
     mockFetchMappings = vi.fn().mockResolvedValue({ mappings: '1:FOOTBALL;2:BASKETBALL;3:LIVE;4:PRE' });
     service = EventMappingService.create({
       fetchMappings: mockFetchMappings,
       mappingStore: mockStore
     });
+    vi.spyOn(Logger, 'info');
+    vi.spyOn(mockStore, "destroy");
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     service.stopPolling();
   });
 
-  it('should start and stop polling', () => {
-    service.startPolling(1000);
-    expect(service['isPolling']).toBe(true);
+  it('should start and stop polling', async () => {
+    await service.startPolling(1000);
+    expect(Logger.info).toHaveBeenCalledWith("Starting polling for event mappings. Interval 1000ms");
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(mockFetchMappings).toHaveBeenCalled();
 
     service.stopPolling();
-    expect(service['isPolling']).toBe(false);
+    expect(Logger.info).toHaveBeenCalledWith(
+      expect.stringContaining('Polling for event mappings stopped')
+    );
+    expect(mockStore.destroy).toHaveBeenCalled();
   });
 
   it('should update mappings', async () => {

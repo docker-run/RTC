@@ -9,8 +9,8 @@ export interface AppConfig {
   temporalMappingStoreIntervalMs: number;
 }
 
-type SportEventScores = Record<string, { type: string, home: string, away: string }>
-type SportEventCompetitors = Record<string, { type: string, name: string }>
+export type SportEventScores = Record<string, { type: string, home: string, away: string }>
+export type SportEventCompetitors = Record<string, { type: string, name: string }>
 
 export interface SportEvent {
   id: string;
