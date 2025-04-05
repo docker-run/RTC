@@ -26,22 +26,44 @@ export class PollingService {
   }
 
   async startPolling(): Promise<void> {
+    if (this.isPolling) {
+      console.log("Polling already started")
+      return;
+    }
+
+    this.isPolling = true;
+
+    console.log(`Starting polling for ${this.taskName}. Interval ${this.intervalMs}ms`)
+
     try {
       await this.executeTask();
       this.pollingInterval = setInterval(async () => {
         await this.executeTask();
       }, this.intervalMs);
     } catch (error) {
+      this.isPolling = false;
       throw error;
     }
   }
 
   stopPolling(): void {
-
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = undefined;
+      console.log(`Polling for ${this.taskName} stopped`);
+    }
+    this.isPolling = false;
   }
 
   private async executeTask(): Promise<void> {
-    await this.task()
+    try {
+      await this.task();
+    } catch (error) {
+      console.log(`Error executing ${this.taskName} polling task`, error);
+      if (this.errorHandler) {
+        this.errorHandler(error as Error);
+      }
+    }
   }
 }
 
