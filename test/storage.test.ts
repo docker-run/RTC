@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { EventStore, HistoricalEventStore } from '../src/storage';
+import { EventStore, HistoricalEventStore, TemporalMappingStore } from '../src/storage';
 import { SportEvent } from '../src/types';
 
 const mockFootballSportEvent = {
@@ -89,4 +89,36 @@ describe('HistoricalEventStore', () => {
 
     expect(allEvents).toEqual({ [mockSnapshotSportEvent.id]: mockSnapshotSportEvent });
   });
+});
+
+describe('TemporalMappingStore', () => {
+  let store: TemporalMappingStore;
+
+  beforeEach(() => {
+    store = new TemporalMappingStore();
+  });
+
+  it('stores and retrieves mappings', () => {
+    store.set('1', 'FOOTBALL');
+    expect(store.get('1')).toBe('FOOTBALL');
+  });
+
+  it('should return undefined for non-existent mappings', () => {
+    expect(store.get('unnamed')).toBeUndefined();
+  });
+
+  it('should retrieve historical versions', () => {
+    const timestamp1 = new Date().toISOString();
+    store.set('1', 'VERSION1');
+
+    // New sport event version arrive from API
+    setTimeout(() => {
+      const timestamp2 = new Date().toISOString();
+      store.set('1', 'VERSION2');
+
+      expect(store.get('1')).toBe('VERSION2');
+      expect(store.getVersionAt('1', timestamp1)).toBe('VERSION1');
+      expect(store.getVersionAt('1', timestamp2)).toBe('VERSION2');
+    }, 10);
+  })
 });

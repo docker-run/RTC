@@ -51,4 +51,20 @@ interface ITemporalMappingStore {
   getVersionAt(id: string, timestamp: string): string | undefined;
 }
 
-// TODO: Add TemporalMappinStore
+export class TemporalMappingStore implements ITemporalMappingStore {
+  private store: Record<string, SportEvent> = {};
+
+  public add(event: SportEvent): void {
+  }
+
+  public get(id: string, timestamp?: string) {
+
+  }
+
+  public set(id: string, value: string) {
+
+  }
+
+  public getVersionAt(id: string, timestamp: string) {
+  }
+}
