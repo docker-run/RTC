@@ -52,19 +52,47 @@ interface ITemporalMappingStore {
 }
 
 export class TemporalMappingStore implements ITemporalMappingStore {
-  private store: Record<string, SportEvent> = {};
+  private store: Record<string, Array<{ value: string; timestamp: string }>> = {};
 
-  public add(event: SportEvent): void {
+  public set(id: string, value: string) {
+    if (!this.store[id]) {
+      this.store[id] = [];
+    }
+
+    this.store[id].push({
+      value,
+      timestamp: new Date().toISOString()
+    });
   }
 
   public get(id: string, timestamp?: string) {
+    const versions = this.store[id];
 
-  }
+    if (!versions || versions.length === 0) {
+      return undefined;
+    };
 
-  public set(id: string, value: string) {
+    if (timestamp) {
+      return this.getVersionAt(id, timestamp);
+    }
 
+    return versions[versions.length - 1].value;
   }
 
   public getVersionAt(id: string, timestamp: string) {
+    const versions = this.store[id];
+
+    if (!versions) {
+      return undefined;
+    }
+
+    // find the most recent version before the timestamp
+    for (let i = versions.length - 1; i >= 0; i--) {
+      if (versions[i].timestamp <= timestamp) {
+        return versions[i].value;
+      }
+    }
+
+    return undefined;
   }
 }
