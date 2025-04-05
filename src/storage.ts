@@ -10,22 +10,22 @@ interface IEventStore {
 export class EventStore implements IEventStore {
   private store: Record<string, PersistedSportEvent> = {};
 
-  public get(id: string) {
-    return undefined;
+  public get(id: string): PersistedSportEvent | undefined {
+    return this.store[id];
   }
 
-  public set(id: string, evetn: PersistedSportEvent) {
-    return null;
+  public set(id: string, event: PersistedSportEvent): void {
+    this.store[id] = event;
   }
 
-  public delete(id: string) {
-
+  public delete(id: string): void {
+    delete this.store[id];
   }
 
-  public getAll() { return {} }
+  public getAll(): Record<string, PersistedSportEvent> {
+    return { ...this.store };
+  }
 }
-
-// TODO: Add EventStore
 
 interface IHistoricalEventStore {
   add(event: SportEvent): void;
