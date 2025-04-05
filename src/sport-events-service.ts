@@ -169,13 +169,15 @@ export class SportEventsService {
 
           Object.keys(newScores).forEach(period => {
             if (!newScores[period]) {
+              Logger.debug(`Missing scores for {period=${period}; eventId=${eventId}; timestamp=${changeTimestamp}}. Score remains unchanged..`);
               return
             };
 
             const oldPeriod = oldScores[period] || { home: '0', away: '0' };
             const newPeriod = newScores[period];
 
-            if (oldPeriod.home === newPeriod.home && oldPeriod.away === newPeriod.away) {
+            if (oldPeriod.type === newPeriod.type && oldPeriod.home === newPeriod.home && oldPeriod.away === newPeriod.away) {
+              Logger.debug(`Score remains unchanged {period=${oldPeriod.type} eventId=${eventId}; timestamp=${changeTimestamp}}`);
               return;
             }
 
@@ -212,6 +214,7 @@ export class SportEventsService {
         const transformedEvent = this.eventMappingService.transformEvent(event);
 
         if (!transformedEvent) {
+          Logger.error(`Cannot create historical snapshot {eventId=${storedId}}. Skipping processing event...`);
           continue
         }
 
