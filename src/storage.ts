@@ -33,7 +33,17 @@ interface IHistoricalEventStore {
 }
 
 
-// TODO: Add HistoricalEventStore
+export class HistoricalEventStore implements IHistoricalEventStore {
+  private store: Record<string, SportEvent> = {};
+
+  public add(event: SportEvent): void {
+
+  }
+
+  public getAll(): Record<string, SportEvent> {
+    return {}
+  }
+}
 
 interface ITemporalMappingStore {
   set(id: string, value: string): void;

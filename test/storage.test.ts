@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { EventStore } from '../src/storage';
+import { EventStore, HistoricalEventStore } from '../src/storage';
+import { SportEvent } from '../src/types';
 
 const mockFootballSportEvent = {
   id: '1',
@@ -45,7 +46,6 @@ describe('EventStore', () => {
   });
 
   it('should return all events', () => {
-
     store.set('1', mockFootballSportEvent);
     store.set('2', mockBasketballSportEvent);
 
@@ -57,3 +57,36 @@ describe('EventStore', () => {
   });
 });
 
+const mockSnapshotSportEvent: SportEvent = {
+  id: '3eccf850-571f-4e18-8cb3-2c9e3afade7b',
+  status: 'REMOVED',
+  scores: {
+    CURRENT: {
+      type: "CURRENT",
+      home: "0",
+      away: "0"
+    },
+  },
+  startTime: "2024-03-04T10:36:07.812Z",
+  sport: 'FOOTBALL',
+  competitors: {
+    HOME: { type: 'HOME', name: 'Juventus' },
+    AWAY: { type: 'AWAY', name: 'Paris Saint-Germain' }
+  },
+  competition: 'UEFA'
+}
+
+describe('HistoricalEventStore', () => {
+  let store: HistoricalEventStore;
+
+  beforeEach(() => {
+    store = new HistoricalEventStore();
+  });
+
+  it('stores snapshots of past sport events', () => {
+    store.add(mockSnapshotSportEvent);
+    const allEvents = store.getAll();
+
+    expect(allEvents).toEqual({ [mockSnapshotSportEvent.id]: mockSnapshotSportEvent });
+  });
+});
