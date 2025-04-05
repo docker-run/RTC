@@ -29,7 +29,9 @@ export class EventMappingService {
     });
   }
 
-  private async updateMappings() { }
+  private async updateMappings() {
+    Logger.debug("Update mappings called")
+  }
 
   async startPolling(intervalMs: number): Promise<void> {
     (this.pollingService as any).intervalMs = intervalMs;

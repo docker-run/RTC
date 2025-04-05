@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { EventStore, HistoricalEventStore, TemporalMappingStore } from '../src/storage';
 import { SportEvent } from '../src/types';
+import { Logger } from '../src/logger';
 
 const mockFootballSportEvent = {
   id: '1',
@@ -100,6 +101,8 @@ describe('TemporalMappingStore', () => {
     vi.useFakeTimers();
     vi.setSystemTime(mockNow);
 
+    vi.spyOn(Logger, 'debug');
+
     // 10 mins retention policy, 5 mins cleanup task interval
     store = new TemporalMappingStore(10 * 60 * 1000, 5 * 60 * 1000);
   });
@@ -156,6 +159,8 @@ describe('TemporalMappingStore', () => {
     expect(store.get('id4')).toBe('value4');
 
     store['cleanupTask']();
+
+    expect(Logger.debug).toHaveBeenCalledWith('Cleanup task completed. Current temporal in-memory database size: 3 entries');
 
     expect(store.get('id1')).toBe('value1'); // 5 mins old - kept
     expect(store.get('id2')).toBe('value2'); // 1 min old - kept

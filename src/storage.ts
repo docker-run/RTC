@@ -1,3 +1,4 @@
+import { Logger } from "./logger";
 import { PersistedSportEvent, SportEvent } from "./types";
 
 interface IEventStore {
@@ -52,18 +53,20 @@ interface ITemporalMappingStore {
 }
 
 export class TemporalMappingStore implements ITemporalMappingStore {
+  private cleanupInterval: NodeJS.Timeout;
+
   private store: Record<string, Array<{ value: string; timestamp: string }>> = {};
 
   constructor(private readonly maxAge: number, private readonly interval: number) {
     this.maxAge = maxAge;
     this.interval = interval;
+    this.cleanupInterval = setInterval(() => this.cleanupTask(), this.interval);
   }
 
   public set(id: string, value: string) {
     if (!this.store[id]) {
       this.store[id] = [];
     }
-
     this.store[id].push({
       value,
       timestamp: new Date().toISOString()
@@ -101,7 +104,24 @@ export class TemporalMappingStore implements ITemporalMappingStore {
     return undefined;
   }
 
-  destroy() {
-    throw new Error('Method not implemented.');
+  private cleanupTask() {
+    const now = new Date();
+    const maxAge = new Date(now.getTime() - this.maxAge).toISOString();
+
+    for (const [id, versions] of Object.entries(this.store)) {
+      const firstValidIndex = versions.findIndex(v => v.timestamp >= maxAge);
+
+      if (firstValidIndex > 0) {
+        this.store[id] = versions.slice(firstValidIndex);
+      } else if (firstValidIndex === -1) {
+        delete this.store[id];
+      }
+    }
+
+    Logger.debug(`Cleanup task completed. Current temporal in-memory database size: ${Object.keys(this.store).length} entries`);
+  }
+
+  public destroy() {
+    clearInterval(this.cleanupInterval);
   }
 }
