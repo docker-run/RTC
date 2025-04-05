@@ -48,4 +48,8 @@ export class SportsEventsService {
   public getCurrentEvents() {
     return {}
   }
+
+  public getRemovedEvents() {
+    return {}
+  }
 }

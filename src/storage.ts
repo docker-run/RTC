@@ -1,7 +1,7 @@
 import { Logger } from "./logger";
 import { PersistedSportEvent, SportEvent } from "./types";
 
-interface IEventStore {
+export interface IEventStore {
   get(id: string): PersistedSportEvent | undefined;
   set(id: string, event: PersistedSportEvent): void;
   delete(id: string): void;
@@ -28,7 +28,7 @@ export class EventStore implements IEventStore {
   }
 }
 
-interface IHistoricalEventStore {
+export interface IHistoricalEventStore {
   add(event: SportEvent): void;
   getAll(): Record<string, SportEvent>;
 }
