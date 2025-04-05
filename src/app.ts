@@ -30,15 +30,18 @@ export function createApp(
     mappingStore: {}
   });
 
-  const sportsEventService = SportsEventsService.create({
+  eventMappingService.startPolling(config.pollingIntervalMs)
+
+  const sportsEventsService = SportsEventsService.create({
     fetchEvents: createApiClient<{ odds?: string }>(config.sportsEventsApi),
     eventMappingService,
     eventStore: {},
     historicalEventStore: {}
   });
 
+  sportsEventsService.startPolling(config.pollingIntervalMs)
 
-  app.use('/', clientStateRoute(sportsEventService));
+  app.use('/', clientStateRoute(sportsEventsService));
 
   return app;
 }

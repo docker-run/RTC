@@ -1,4 +1,5 @@
 import { EventMappingService } from "./event-mapping-service";
+import { PollingService } from "./polling-service";
 import { FetchEventsFn } from "./types";
 
 type SportsEventsServiceArgs = {
@@ -14,6 +15,8 @@ export class SportsEventsService {
   private readonly fetchEvents: FetchEventsFn;
   private readonly eventMappingService: EventMappingService;
 
+  private pollingService: PollingService;
+
   public static create(args: SportsEventsServiceArgs) {
     return new this(args);
   }
@@ -23,6 +26,22 @@ export class SportsEventsService {
     this.eventStore = eventStore;
     this.eventMappingService = eventMappingService;
     this.historicalEventStore = historicalEventStore;
+
+    this.pollingService = PollingService.create({
+      task: this.updateSportsEvents.bind(this),
+      intervalMs: 0,
+      taskName: 'event mappings',
+      errorHandler: (error) => console.error("Update event mapping store error", error)
+    });
+  }
+
+  async startPolling(intervalMs: number): Promise<void> {
+    (this.pollingService as any).intervalMs = intervalMs;
+    await this.pollingService.startPolling();
+  }
+
+  private async updateSportsEvents() {
+    console.log('events updated')
   }
 
   public getCurrentEvents() {
