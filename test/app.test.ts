@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app';
 import { SportsEventsService } from '../src/sport-events-service';
@@ -8,10 +8,13 @@ describe('App', () => {
   it('should create an express app with /client/state endpoint', async () => {
     const mockService = {
       getCurrentEvents: vi.fn().mockResolvedValue({}),
+      startPolling: vi.fn()
     };
 
     const mockMappingService = {
+      startPolling: vi.fn()
     };
+
 
     vi.spyOn(SportsEventsService, 'create').mockReturnValue(mockService as any);
     vi.spyOn(EventMappingService, 'create').mockReturnValue(mockMappingService as any);
@@ -24,6 +27,8 @@ describe('App', () => {
 
     expect(SportsEventsService.create).toHaveBeenCalled();
     expect(EventMappingService.create).toHaveBeenCalled();
+    expect(mockService.startPolling).toHaveBeenCalledWith(1000);
+    expect(mockMappingService.startPolling).toHaveBeenCalledWith(1000);
   });
 });
 
