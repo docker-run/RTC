@@ -54,6 +54,11 @@ interface ITemporalMappingStore {
 export class TemporalMappingStore implements ITemporalMappingStore {
   private store: Record<string, Array<{ value: string; timestamp: string }>> = {};
 
+  constructor(private readonly maxAge: number, private readonly interval: number) {
+    this.maxAge = maxAge;
+    this.interval = interval;
+  }
+
   public set(id: string, value: string) {
     if (!this.store[id]) {
       this.store[id] = [];
@@ -94,5 +99,9 @@ export class TemporalMappingStore implements ITemporalMappingStore {
     }
 
     return undefined;
+  }
+
+  destroy() {
+    throw new Error('Method not implemented.');
   }
 }
