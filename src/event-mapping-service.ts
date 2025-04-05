@@ -29,12 +29,42 @@ export class EventMappingService {
     });
   }
 
-  private async updateMappings() {
-    Logger.debug("Update mappings called")
-  }
-
   async startPolling(intervalMs: number): Promise<void> {
     (this.pollingService as any).intervalMs = intervalMs;
     await this.pollingService.startPolling();
+  }
+
+  async stopPolling() {
+    throw new Error('method not implemented yet');
+  }
+
+  private async updateMappings(): Promise<void> {
+    Logger.debug("Update mappings called")
+  }
+
+  public transformEvents(event: any) {
+    throw new Error('method not implemented yet');
+  }
+
+  // map existing ids to their human-readable mappings
+  public transformEvent(event: any) {
+    throw new Error('method not implemented yet');
+  }
+
+  // skip malformed events before saving
+  public verifyEventMappings(event: any) {
+    throw new Error('method not implemented yet');
+  }
+
+  async getMappedScores(event: any) {
+    throw new Error('method not implemented yet');
+  }
+
+  async getMappedName(event: any) {
+    throw new Error('method not implemented yet');
+  }
+
+  public destroyMappingStore() {
+
   }
 }
