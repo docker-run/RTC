@@ -1,9 +1,11 @@
+import axios from 'axios';
 import express from 'express';
 import { clientStateRoute } from './client';
-import axios from 'axios';
-import { SportsEventsService } from './sport-events-service';
+import { SportEventsService } from './sport-events-service';
 import { AppConfig } from './types';
 import { EventMappingService } from './event-mapping-service';
+import { Logger } from './logger';
+import { EventStore, HistoricalEventStore, TemporalMappingStore } from './storage';
 
 export function createApp(
   config: AppConfig = {
@@ -21,22 +23,27 @@ export function createApp(
       const response = await axios.get<T>(url);
       return response.data;
     } catch (error) {
+      Logger.error(`Failed to fetch data from ${url}`, error);
       throw error;
     }
   };
 
+  const mappingStore = new TemporalMappingStore(config.maxAge, config.temporalMappingStoreIntervalMs);
+  const historicalEventStore = new HistoricalEventStore();
+  const eventStore = new EventStore();
+
   const eventMappingService = EventMappingService.create({
     fetchMappings: createApiClient<{ mappings?: string }>(config.mappingsApi),
-    mappingStore: {}
+    mappingStore,
   });
 
   eventMappingService.startPolling(config.pollingIntervalMs)
 
-  const sportsEventsService = SportsEventsService.create({
+  const sportsEventsService = SportEventsService.create({
     fetchEvents: createApiClient<{ odds?: string }>(config.sportsEventsApi),
     eventMappingService,
-    eventStore: {},
-    historicalEventStore: {}
+    eventStore,
+    historicalEventStore,
   });
 
   sportsEventsService.startPolling(config.pollingIntervalMs)

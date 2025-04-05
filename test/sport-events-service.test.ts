@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventMappingService } from '../src/event-mapping-service';
 import { EventStore, HistoricalEventStore, TemporalMappingStore } from '../src/storage';
-import { SportsEventsService } from '../src/sport-events-service';
+import { SportEventsService } from '../src/sport-events-service';
 import { Logger } from '../src/logger';
 
 const eventId = '995e0722-4118-4f8e-a517-82f6ea240673';
@@ -64,7 +64,7 @@ const setupTest = (fetchEventsMock: any, fetchMappingsMock = vi.fn().mockResolve
   const { mockEventStore, mockHistoricalStore, mockMappingStore } = createTestContext();
   const mockEventMappingService = createEventMappingService(mockMappingStore, fetchMappingsMock);
 
-  const service = SportsEventsService.create({
+  const service = SportEventsService.create({
     fetchEvents: fetchEventsMock,
     eventMappingService: mockEventMappingService,
     eventStore: mockEventStore,
@@ -77,7 +77,7 @@ const setupTest = (fetchEventsMock: any, fetchMappingsMock = vi.fn().mockResolve
   };
 };
 
-describe('SportsEventsService', () => {
+describe('SportEventsService', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
@@ -234,7 +234,7 @@ describe('SportsEventsService', () => {
 
   it('(edge case) fetches from temporal database in case updated property mapping cant be resolved at the moment', async () => {
     const apiMappingsV1 = createMappings({ liveStatus: "changed_live_status" })
-    const fetchMappings = vi.fn().mockResolvedValueOnce(apiMappings).mockResolvedValueOnce(apiMappingsV1)
+    const fetchMappings = vi.fn().mockResolvedValueOnce(apiMappings).mockResolvedValueOnce(apiMappingsV1).mockResolvedValue(apiMappingsV1);
     const fetchEvents = vi.fn().mockResolvedValue(apiSportEvent)
     const { service, mockEventMappingService } = setupTest(fetchEvents, fetchMappings);
 

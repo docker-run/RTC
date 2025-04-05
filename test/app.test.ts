@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app';
-import { SportsEventsService } from '../src/sport-events-service';
+import { SportEventsService } from '../src/sport-events-service';
 import { EventMappingService } from '../src/event-mapping-service';
 
 describe('App', () => {
@@ -16,7 +16,7 @@ describe('App', () => {
     };
 
 
-    vi.spyOn(SportsEventsService, 'create').mockReturnValue(mockService as any);
+    vi.spyOn(SportEventsService, 'create').mockReturnValue(mockService as any);
     vi.spyOn(EventMappingService, 'create').mockReturnValue(mockMappingService as any);
 
     const app = createApp();
@@ -25,7 +25,7 @@ describe('App', () => {
 
     expect(response.status).toBe(200);
 
-    expect(SportsEventsService.create).toHaveBeenCalled();
+    expect(SportEventsService.create).toHaveBeenCalled();
     expect(EventMappingService.create).toHaveBeenCalled();
     expect(mockService.startPolling).toHaveBeenCalledWith(1000);
     expect(mockMappingService.startPolling).toHaveBeenCalledWith(1000);

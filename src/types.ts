@@ -15,11 +15,11 @@ export type SportEventCompetitors = Record<string, { type: string, name: string 
 export interface SportEvent {
   id: string;
   status: string;
+  competitors: SportEventCompetitors;
+  competition: string;
   scores: SportEventScores | "N/A";
   startTime: string;
   sport: string;
-  competitors: SportEventCompetitors;
-  competition: string;
 }
 
 export interface PersistedSportEvent {

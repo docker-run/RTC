@@ -50,6 +50,7 @@ export interface ITemporalMappingStore {
   get(id: string, timestamp?: string): string | undefined;
   getVersionAt(id: string, timestamp: string): string | undefined;
   destroy(): void;
+  getIdByValue(value: string): string | undefined;
 }
 
 export class TemporalMappingStore implements ITemporalMappingStore {
@@ -77,7 +78,7 @@ export class TemporalMappingStore implements ITemporalMappingStore {
     const versions = this.store[id];
 
     if (!versions || versions.length === 0) {
-      return undefined;
+      return;
     };
 
     if (timestamp) {
@@ -91,7 +92,7 @@ export class TemporalMappingStore implements ITemporalMappingStore {
     const versions = this.store[id];
 
     if (!versions) {
-      return undefined;
+      return;
     }
 
     // find the most recent version before the timestamp
@@ -100,8 +101,15 @@ export class TemporalMappingStore implements ITemporalMappingStore {
         return versions[i].value;
       }
     }
+  }
 
-    return undefined;
+  public getIdByValue(value: string) {
+    for (const [id, versions] of Object.entries(this.store)) {
+      const currentValue = versions[versions.length - 1]?.value;
+      if (currentValue === value) {
+        return id;
+      }
+    }
   }
 
   private cleanupTask() {

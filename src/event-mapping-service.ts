@@ -211,4 +211,8 @@ export class EventMappingService {
   public destroyMappingStore() {
     this.mappingStore.destroy();
   }
+
+  public getIdByValue(value: string) {
+    return this.mappingStore.getIdByValue(value)
+  }
 }
