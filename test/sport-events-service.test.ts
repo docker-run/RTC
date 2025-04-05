@@ -33,9 +33,13 @@ const createApiSportEvent = ({ status = 'ac68a563-e511-4776-b2ee-cd395c7dc424', 
 
 const apiSportEvent = createApiSportEvent({});
 
-const apiMappings = {
-  "mappings": "c0a1f678-dbe5-4cc8-aa52-8c822dc65267:Basketball;7ee17545-acd2-4332-869b-1bef06cfaec8:Premier League;29190088-763e-4d1c-861a-d16dbfcf858c:Brooklyn NETS;3cd8eeee-a57c-48a3-845f-93b561a95782:LA Lakers;ac68a563-e511-4776-b2ee-cd395c7dc424:LIVE;cb807d14-5a98-4b41-8ddc-74a1f5f80f9b:REMOVED;5d8040b7-0331-43ac-8051-03913e2c3a5d:PRE;cb807d14-5a98-4b41-8ddc-74a1f5f80f9b:REMOVED;e2d12fef-ae82-4a35-b389-51edb8dc664e:CURRENT;6c036000-6dd9-485d-97a1-e338e6a32a51:PERIOD_1;2db8bc38-b46d-4bd9-9218-6f8dbe083517:PERIOD_2;0cfb491c-7d09-4ffc-99fb-a6ee0cf5d198:PERIOD_3;5a79d3e7-85b3-4d6b-b4bf-ddd743e7162f:PERIOD_4"
-};
+const createMappings = ({
+  liveStatus = "ac68a563-e511-4776-b2ee-cd395c7dc424"
+}) => {
+  return { "mappings": `c0a1f678-dbe5-4cc8-aa52-8c822dc65267:Basketball;7ee17545-acd2-4332-869b-1bef06cfaec8:Premier League;29190088-763e-4d1c-861a-d16dbfcf858c:Brooklyn NETS;3cd8eeee-a57c-48a3-845f-93b561a95782:LA Lakers;${liveStatus}:LIVE;cb807d14-5a98-4b41-8ddc-74a1f5f80f9b:REMOVED;5d8040b7-0331-43ac-8051-03913e2c3a5d:PRE;cb807d14-5a98-4b41-8ddc-74a1f5f80f9b:REMOVED;e2d12fef-ae82-4a35-b389-51edb8dc664e:CURRENT;6c036000-6dd9-485d-97a1-e338e6a32a51:PERIOD_1;2db8bc38-b46d-4bd9-9218-6f8dbe083517:PERIOD_2;0cfb491c-7d09-4ffc-99fb-a6ee0cf5d198:PERIOD_3;5a79d3e7-85b3-4d6b-b4bf-ddd743e7162f:PERIOD_4` }
+}
+
+const apiMappings = createMappings({});
 
 const createTestContext = () => {
   const mockEventStore = new EventStore();
@@ -49,16 +53,16 @@ const createTestContext = () => {
   };
 };
 
-const createEventMappingService = (mockMappingStore: any) => {
+const createEventMappingService = (mockMappingStore: any, fetchMappingsMock: any) => {
   return EventMappingService.create({
-    fetchMappings: vi.fn().mockResolvedValue(apiMappings),
+    fetchMappings: fetchMappingsMock,
     mappingStore: mockMappingStore
   });
 };
 
-const setupTest = (fetchEventsMock: any) => {
+const setupTest = (fetchEventsMock: any, fetchMappingsMock = vi.fn().mockResolvedValue(apiMappings)) => {
   const { mockEventStore, mockHistoricalStore, mockMappingStore } = createTestContext();
-  const mockEventMappingService = createEventMappingService(mockMappingStore);
+  const mockEventMappingService = createEventMappingService(mockMappingStore, fetchMappingsMock);
 
   const service = SportsEventsService.create({
     fetchEvents: fetchEventsMock,
@@ -227,4 +231,18 @@ describe('SportsEventsService', () => {
     await vi.advanceTimersByTimeAsync(1000);
     expect(service.getRemovedEvents()).toEqual(removedSportEvent);
   });
+
+  it('(edge case) fetches from temporal database in case updated property mapping cant be resolved at the moment', async () => {
+    const apiMappingsV1 = createMappings({ liveStatus: "changed_live_status" })
+    const fetchMappings = vi.fn().mockResolvedValueOnce(apiMappings).mockResolvedValueOnce(apiMappingsV1)
+    const fetchEvents = vi.fn().mockResolvedValue(apiSportEvent)
+    const { service, mockEventMappingService } = setupTest(fetchEvents, fetchMappings);
+
+    await mockEventMappingService.startPolling(1000);
+    await vi.advanceTimersByTimeAsync(5000);
+    await service.startPolling(1000);
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(service.getCurrentEvents()).toEqual(sportEvent);
+  })
 });
