@@ -37,11 +37,11 @@ export class HistoricalEventStore implements IHistoricalEventStore {
   private store: Record<string, SportEvent> = {};
 
   public add(event: SportEvent): void {
-
+    this.store[event.id] = event;
   }
 
   public getAll(): Record<string, SportEvent> {
-    return {}
+    return { ...this.store };
   }
 }
 
