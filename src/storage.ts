@@ -7,6 +7,24 @@ interface IEventStore {
   getAll(): Record<string, PersistedSportEvent>;
 }
 
+export class EventStore implements IEventStore {
+  private store: Record<string, PersistedSportEvent> = {};
+
+  public get(id: string) {
+    return undefined;
+  }
+
+  public set(id: string, evetn: PersistedSportEvent) {
+    return null;
+  }
+
+  public delete(id: string) {
+
+  }
+
+  public getAll() { return {} }
+}
+
 // TODO: Add EventStore
 
 interface IHistoricalEventStore {
