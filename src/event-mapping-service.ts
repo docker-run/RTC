@@ -1,3 +1,4 @@
+import { Logger } from "./logger";
 import { PollingService } from "./polling-service";
 import { FetchMappingsFn } from "./types";
 
@@ -24,9 +25,10 @@ export class EventMappingService {
       task: this.updateMappings.bind(this),
       intervalMs: 0,
       taskName: 'event mappings',
-      errorHandler: (error) => console.error("Update event mapping store error", error)
+      errorHandler: (error) => Logger.error("Update event mapping store error", error)
     });
   }
+
   private async updateMappings() { }
 
   async startPolling(intervalMs: number): Promise<void> {

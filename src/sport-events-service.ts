@@ -1,4 +1,5 @@
 import { EventMappingService } from "./event-mapping-service";
+import { Logger } from "./logger";
 import { PollingService } from "./polling-service";
 import { FetchEventsFn } from "./types";
 
@@ -31,7 +32,7 @@ export class SportsEventsService {
       task: this.updateSportsEvents.bind(this),
       intervalMs: 0,
       taskName: 'event mappings',
-      errorHandler: (error) => console.error("Update event mapping store error", error)
+      errorHandler: (error) => Logger.error("Update sports event store error", error)
     });
   }
 
@@ -41,10 +42,10 @@ export class SportsEventsService {
   }
 
   private async updateSportsEvents() {
-    console.log('events updated')
+    Logger.info("Events updated")
   }
 
   public getCurrentEvents() {
-
+    return {}
   }
 }

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PollingService } from "../src/polling-service";
+import { Logger } from "../src/logger";
 
 describe('PollingService', () => {
   const mockTask = vi.fn();
@@ -7,7 +8,8 @@ describe('PollingService', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.spyOn(console, "log");
+    vi.spyOn(Logger, 'info');
+    vi.spyOn(Logger, 'error');
     mockTask.mockReset();
     mockErrorHandler.mockReset();
   });
@@ -77,6 +79,6 @@ describe('PollingService', () => {
     await service.startPolling();
     // following call should be ignored
     await service.startPolling();
-    expect(console.log).toHaveBeenCalledWith("Polling already started")
+    expect(Logger.info).toHaveBeenCalledWith('Polling for test polling already started');
   });
 });

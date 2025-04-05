@@ -1,3 +1,4 @@
+import { Logger } from "./logger";
 
 type PollingServiceArgs = {
   task(): Promise<void>;
@@ -27,13 +28,13 @@ export class PollingService {
 
   async startPolling(): Promise<void> {
     if (this.isPolling) {
-      console.log("Polling already started")
+      Logger.info(`Polling for ${this.taskName} already started`);
       return;
     }
 
     this.isPolling = true;
 
-    console.log(`Starting polling for ${this.taskName}. Interval ${this.intervalMs}ms`)
+    Logger.info(`Starting polling for ${this.taskName}. Interval ${this.intervalMs}ms`);
 
     try {
       await this.executeTask();
@@ -41,6 +42,7 @@ export class PollingService {
         await this.executeTask();
       }, this.intervalMs);
     } catch (error) {
+      Logger.error(`Failed to start polling for ${this.taskName}`, error);
       this.isPolling = false;
       throw error;
     }
@@ -50,7 +52,7 @@ export class PollingService {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = undefined;
-      console.log(`Polling for ${this.taskName} stopped`);
+      Logger.info(`Polling for ${this.taskName} stopped`);
     }
     this.isPolling = false;
   }
@@ -59,7 +61,7 @@ export class PollingService {
     try {
       await this.task();
     } catch (error) {
-      console.log(`Error executing ${this.taskName} polling task`, error);
+      Logger.error(`Error executing ${this.taskName} polling task`, error);
       if (this.errorHandler) {
         this.errorHandler(error as Error);
       }
