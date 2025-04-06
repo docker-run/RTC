@@ -4,7 +4,7 @@ export type FetchMappingsFn = () => Promise<{ mappings?: string }>;
 export interface AppConfig {
   pollingIntervalMs: number;
   mappingsApi: string;
-  sportsEventsApi: string;
+  sportEventsApi: string;
   maxAge: number;
   temporalMappingStoreIntervalMs: number;
 }

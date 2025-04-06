@@ -9,7 +9,7 @@ import { EventStore, HistoricalEventStore, TemporalMappingStore } from './storag
 
 export function createApp(
   config: AppConfig = {
-    sportsEventsApi: process.env.SPORTS_EVENTS_API || 'http://localhost:3000/api/state',
+    sportEventsApi: process.env.SPORT_EVENTS_API || 'http://localhost:3000/api/state',
     mappingsApi: process.env.MAPPINGS_API || 'http://localhost:3000/api/mappings',
     pollingIntervalMs: parseInt(process.env.POLLING_INTERVAL_MS || '1000', 10),
     maxAge: 10 * 60 * 1000,
@@ -40,7 +40,7 @@ export function createApp(
   eventMappingService.startPolling(config.pollingIntervalMs)
 
   const sportsEventsService = SportEventsService.create({
-    fetchEvents: createApiClient<{ odds?: string }>(config.sportsEventsApi),
+    fetchEvents: createApiClient<{ odds?: string }>(config.sportEventsApi),
     eventMappingService,
     eventStore,
     historicalEventStore,

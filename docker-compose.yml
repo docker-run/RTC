@@ -5,3 +5,15 @@ services:
     image: mysteriouscrawler/test
     ports:
       - "3000:3000"
+  
+  express-server:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      - SPORT_EVENTS_API=http://simulation:3000/api/state
+      - MAPPINGS_API=http://simulation:3000/api/mappings
+      - PORT=3001
+      - POLLING_INTERVAL_MS=1000
+    depends_on:
+      - simulation
