@@ -8,6 +8,7 @@ This guide explains how to run and debug the Dockerized Express server that conn
 - Node.js (version 18+) - only needed for local development without Docker
 
 ## Project Structure
+```
 src/
 ├── app.ts                        # Initializes services and server
 ├── index.ts                      # Entry point of the application
@@ -19,7 +20,7 @@ src/
 ├── sport-events-service.ts      # Tracks internal state of all sport events (LIVE + PRE + REMOVED)
 ├── storage.ts                   # In-memory data storage
 └── types.ts                     # Contains TypeScript types/interfaces for events, mappings, scores, etc.
-
+```
 ## Running the Application
 
 ### Option 1: Using Docker Compose (Recommended)
