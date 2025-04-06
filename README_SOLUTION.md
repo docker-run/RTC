@@ -34,6 +34,7 @@ docker-compose up --build
 2. Access:
 
 Express server: http://localhost:3001
+
 Simulation API: http://localhost:3000
 
 
@@ -72,9 +73,6 @@ npm run build
 3. Start the server:
 
 ```shell
-SPORT_EVENTS_API=http://localhost:3000/api/state \
-MAPPINGS_API=http://localhost:3000/api/mappings \
-PORT=3001 \
 npm start
 ```
 
@@ -82,11 +80,18 @@ npm start
 
 ### Viewing Logs
 
-1. For Docker Compose:
+For Docker Compose:
 
 ```shell
 docker-compose logs -f express-server
 ```
+
+Starts the server in debug mode:
+
+```shell
+npm run start:debug
+```
+
 
 ## Testing 
 
