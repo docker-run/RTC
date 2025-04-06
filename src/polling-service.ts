@@ -11,7 +11,7 @@ export class PollingService {
   private pollingInterval?: NodeJS.Timeout;
   private isPolling = false;
   private readonly task: () => Promise<void>;
-  private readonly intervalMs: number;
+  private intervalMs: number;
   private readonly taskName: string;
   private readonly errorHandler?: (error: Error) => void;
 
@@ -24,6 +24,10 @@ export class PollingService {
     this.intervalMs = intervalMs;
     this.taskName = taskName;
     this.errorHandler = errorHandler;
+  }
+
+  public setInterval(intervalMs: number) {
+    this.intervalMs = intervalMs;
   }
 
   async startPolling(): Promise<void> {
@@ -41,6 +45,7 @@ export class PollingService {
       this.pollingInterval = setInterval(async () => {
         await this.executeTask();
       }, this.intervalMs);
+      return;
     } catch (error) {
       Logger.error(`Failed to start polling for ${this.taskName}`, error);
       this.isPolling = false;
@@ -48,7 +53,7 @@ export class PollingService {
     }
   }
 
-  stopPolling(): void {
+  public stopPolling() {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = undefined;

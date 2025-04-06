@@ -31,13 +31,12 @@ export class EventMappingService {
   }
 
   async startPolling(intervalMs: number): Promise<void> {
-    (this.pollingService as any).intervalMs = intervalMs;
+    this.pollingService.setInterval(intervalMs);
     await this.pollingService.startPolling();
   }
 
   async stopPolling() {
     this.pollingService.stopPolling();
-    this.destroyMappingStore();
   }
 
   private async updateMappings(): Promise<void> {
@@ -206,10 +205,6 @@ export class EventMappingService {
     }
 
     return mapping;
-  }
-
-  public destroyMappingStore() {
-    this.mappingStore.destroy();
   }
 
   public getIdByValue(value: string) {

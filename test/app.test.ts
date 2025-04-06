@@ -19,7 +19,7 @@ describe('App', () => {
     vi.spyOn(SportEventsService, 'create').mockReturnValue(mockService as any);
     vi.spyOn(EventMappingService, 'create').mockReturnValue(mockMappingService as any);
 
-    const app = createApp();
+    const { app } = await createApp();
 
     const response = await request(app).get('/client/state');
 

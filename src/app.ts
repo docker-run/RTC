@@ -7,7 +7,7 @@ import { EventMappingService } from './event-mapping-service';
 import { Logger } from './logger';
 import { EventStore, HistoricalEventStore, TemporalMappingStore } from './storage';
 
-export function createApp(
+export async function createApp(
   config: AppConfig = {
     sportEventsApi: process.env.SPORT_EVENTS_API || 'http://localhost:3000/api/state',
     mappingsApi: process.env.MAPPINGS_API || 'http://localhost:3000/api/mappings',
@@ -15,7 +15,7 @@ export function createApp(
     maxAge: 10 * 60 * 1000,
     temporalMappingStoreIntervalMs: 5 * 60 * 1000
   }
-): express.Express {
+) {
   const app = express();
 
   const createApiClient = <T>(url: string) => async (): Promise<T> => {
@@ -37,8 +37,6 @@ export function createApp(
     mappingStore,
   });
 
-  eventMappingService.startPolling(config.pollingIntervalMs)
-
   const sportsEventsService = SportEventsService.create({
     fetchEvents: createApiClient<{ odds?: string }>(config.sportEventsApi),
     eventMappingService,
@@ -46,9 +44,15 @@ export function createApp(
     historicalEventStore,
   });
 
-  sportsEventsService.startPolling(config.pollingIntervalMs)
+  try {
+    await eventMappingService.startPolling(config.pollingIntervalMs);
+    await sportsEventsService.startPolling(config.pollingIntervalMs);
+  } catch (error) {
+    Logger.error('Failed to start polling services', error);
+    throw error;
+  }
 
   app.use('/', clientStateRoute(sportsEventsService));
 
-  return app;
+  return { app, eventMappingService, sportsEventsService };
 }

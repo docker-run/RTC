@@ -37,7 +37,6 @@ describe('EventMappingService', () => {
     expect(Logger.info).toHaveBeenCalledWith(
       expect.stringContaining('Polling for event mappings stopped')
     );
-    expect(mockStore.destroy).toHaveBeenCalled();
   });
 
   it('should update mappings', async () => {

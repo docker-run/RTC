@@ -60,14 +60,18 @@ export class SportEventsService {
     this.pollingService = PollingService.create({
       task: this.updateEvents.bind(this),
       intervalMs: 0,
-      taskName: 'event mappings',
+      taskName: 'sport events',
       errorHandler: (error) => Logger.error("Update sport event store error", error)
     });
   }
 
   async startPolling(intervalMs: number) {
-    (this.pollingService as any).intervalMs = intervalMs;
+    this.pollingService.setInterval(intervalMs);
     await this.pollingService.startPolling();
+  }
+
+  async stopPolling() {
+    this.pollingService.stopPolling();
   }
 
   private async updateEvents() {
