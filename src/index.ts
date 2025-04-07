@@ -14,35 +14,33 @@ const setupMemoryMonitoring = () => {
 };
 
 const startServer = async () => {
-  try {
-    const memoryMonitorInterval = setupMemoryMonitoring();
+  const memoryMonitorInterval = setupMemoryMonitoring();
 
-    const { app, eventMappingService, sportsEventsService } = await createApp();
+  const { app, sportsEventsService } = await createApp();
 
-    const server = app.listen(PORT, () => {
-      Logger.info(`Server ready { port=${PORT} }`);
+  const server = app.listen(PORT, () => {
+    Logger.info(`Server ready { port=${PORT} }`);
+  });
+
+  const shutdown = () => {
+    Logger.info('Shutting down server...');
+    clearInterval(memoryMonitorInterval);
+
+    sportsEventsService.stopPolling();
+
+    server.close(() => {
+      Logger.info('Server has been stopped');
+      process.exit(0);
     });
+  };
 
-    const shutdown = () => {
-      Logger.info('Shutting down server...');
-      clearInterval(memoryMonitorInterval);
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 
-      sportsEventsService.stopPolling();
-
-      server.close(() => {
-        Logger.info('Server has been stopped');
-        process.exit(0);
-      });
-    };
-
-    process.on('SIGTERM', shutdown);
-    process.on('SIGINT', shutdown);
-
-    return server;
-  } catch (error) {
-    Logger.error('Failed to start server:', error);
-    process.exit(1);
-  }
+  return server;
 };
 
-startServer();
+startServer().catch(error => {
+  Logger.error('Failed to start server:', error);
+  process.exit(1);
+});

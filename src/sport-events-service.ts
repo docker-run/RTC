@@ -76,14 +76,14 @@ export class SportEventsService {
     this.pollingService.stopPolling();
   }
 
-  private async refreshMappings(timestamp: string) {
+  private async refreshMappings() {
     let attempts = 0;
     const MAX_ATTEMPTS = 3;
     const BASE_DELAY = 1000;
 
     while (attempts < MAX_ATTEMPTS) {
       try {
-        await this.eventMappingService.updateMappings(timestamp)
+        await this.eventMappingService.updateMappings()
         return;
       } catch (error) {
         attempts++;
@@ -102,7 +102,7 @@ export class SportEventsService {
     const version = this.eventMappingService.getMappingsVersion()
 
     if (version === 0) {
-      await this.refreshMappings(timestamp);
+      await this.refreshMappings();
     }
 
     try {
@@ -116,7 +116,7 @@ export class SportEventsService {
       }
 
       if (this.isEmptyOdds) {
-        await this.refreshMappings(timestamp);
+        await this.refreshMappings();
         this.isEmptyOdds = false;
       }
 
@@ -259,7 +259,7 @@ export class SportEventsService {
         const transformedEvent = this.eventMappingService.transformEvent(event);
 
         if (!transformedEvent) {
-          Logger.error(`Cannot create historical snapshot {eventId=${storedId}}. Skipping processing event...`);
+          Logger.error(`Failed to create historical snapshot {eventId=${storedId}}. Skipping processing event...`);
           continue
         }
 
@@ -284,13 +284,9 @@ export class SportEventsService {
   }
 
   private logStatusChange({ eventId, oldStatusId, newStatusId, timestamp }: ILogStatusChangeParams) {
-    try {
-      const oldStatus = this.eventMappingService.getMappedName(oldStatusId);
-      const newStatus = this.eventMappingService.getMappedName(newStatusId);
-      Logger.info(`Event status updated {eventId=${eventId}; timestamp=${timestamp}}; ${oldStatus} → ${newStatus}`);
-    } catch (error) {
-      Logger.error(`Error getting status change mappings {eventId=${eventId}}`, error);
-    }
+    const oldStatus = this.eventMappingService.getMappedName(oldStatusId);
+    const newStatus = this.eventMappingService.getMappedName(newStatusId);
+    Logger.info(`Event status updated {eventId=${eventId}; timestamp=${timestamp}}; ${oldStatus} → ${newStatus}`);
   }
 
   private logScoreChange({

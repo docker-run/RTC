@@ -19,39 +19,30 @@ export class EventMappingService {
     this.fetchMappings = fetchMappings;
   }
 
-  public async updateMappings(timestamp: string): Promise<void> {
+  public async updateMappings() {
     try {
-      const mappingsData = await this.fetchMappings();
-      const mappings = mappingsData.mappings;
-
-      if (!mappings) {
-        Logger.warn("No mappings found. Skipping cache update...");
-        return;
-      }
-
-      this.updateMappingStore(mappingsData.mappings);
-      Logger.debug(`Updated mappings cache on demand {timestamp=${timestamp}}`);
+      const sportEventPropertiesById = await this.fetchMappings();
+      this.updateMappingStore(sportEventPropertiesById.mappings);
     } catch (error) {
-      Logger.error("Update mappings cache error", error);
+      Logger.error("Failed to update mappings cache", error);
     }
   }
 
   private updateMappingStore(mappings?: string) {
     if (!mappings) {
-      Logger.debug('No mappings found. Skipping cache update...');
+      Logger.warn('Mappings not defined. Skipping cache update...');
       return
     }
 
-    try {
-      const parsedMappings = this.parseMappingsString(mappings);
-      if (JSON.stringify(parsedMappings) !== JSON.stringify(this.mappings)) {
-        this.mappingsVersion++;
-        this.mappings = {...parsedMappings};
-        this.mappingsCache.set(this.mappingsVersion, {...parsedMappings});
-        Logger.debug(`Updated mappings {version=${this.mappingsVersion}}`);
-      }
-    } catch (error) {
-      throw new Error('Invalid mappings data', error);
+    const parsedMappings = this.parseMappingsString(mappings);
+
+    if (JSON.stringify(parsedMappings) !== JSON.stringify(this.mappings)) {
+      this.mappingsVersion++;
+      this.mappings = {...parsedMappings};
+      this.mappingsCache.set(this.mappingsVersion, {...parsedMappings});
+      Logger.debug(`Updated mappings to {version=${this.mappingsVersion}}`);
+    } else {
+      Logger.debug("Mappings cache is up-to-date. Skipping cache update...");
     }
   }
 
@@ -73,21 +64,17 @@ export class EventMappingService {
     let events = {};
 
     for (const [id, event] of Object.entries(sportsEvents)) {
-      try {
-        const transformedEvent = this.transformEvent(event);
-        if (transformedEvent) {
-          events[id] = transformedEvent;
-        }
-      } catch (error) {
-        Logger.error(`Transformation error {eventId=${event.id}}. Skipping processing event...`, error);
+      const transformedEvent = this.transformEvent(event);
+
+      if (transformedEvent) {
+        events[id] = transformedEvent;
       }
     }
 
     return events;
   }
 
-  // map existing ids to their human-readable mappings
-  public transformEvent(sportsEvent: PersistedSportEvent): SportEvent | null {
+  public transformEvent(sportEvent: PersistedSportEvent): SportEvent | null {
     const {
       id,
       sportId,
@@ -97,7 +84,7 @@ export class EventMappingService {
       awayCompetitorId,
       statusId,
       scores
-    } = sportsEvent;
+    } = sportEvent;
 
     try {
       const sportName = this.getMappedName(sportId);
@@ -116,7 +103,7 @@ export class EventMappingService {
         competition: competitionName,
       };
     } catch (error) {
-      Logger.error(`Mapping error {eventId=${id}}. Skipping processing event...`, error);
+      Logger.error(`Failed to transform event {eventId=${id}}. Skipping processing event...`, error);
       return null
     }
   }
