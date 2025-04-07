@@ -15,7 +15,6 @@ describe('App', () => {
       startPolling: vi.fn()
     };
 
-
     vi.spyOn(SportEventsService, 'create').mockReturnValue(mockService as any);
     vi.spyOn(EventMappingService, 'create').mockReturnValue(mockMappingService as any);
 
@@ -28,7 +27,6 @@ describe('App', () => {
     expect(SportEventsService.create).toHaveBeenCalled();
     expect(EventMappingService.create).toHaveBeenCalled();
     expect(mockService.startPolling).toHaveBeenCalledWith(1000);
-    expect(mockMappingService.startPolling).toHaveBeenCalledWith(1000);
   });
 });
 

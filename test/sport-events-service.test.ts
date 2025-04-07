@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventMappingService } from '../src/event-mapping-service';
-import { EventStore, HistoricalEventStore, TemporalMappingStore } from '../src/storage';
+import { EventStore, HistoricalEventStore } from '../src/storage';
 import { SportEventsService } from '../src/sport-events-service';
 import { Logger } from '../src/logger';
 
@@ -44,25 +44,22 @@ const apiMappings = createMappings({});
 const createTestContext = () => {
   const mockEventStore = new EventStore();
   const mockHistoricalStore = new HistoricalEventStore();
-  const mockMappingStore = new TemporalMappingStore(10 * 60 * 1000, 5 * 60 * 1000);
 
   return {
     mockEventStore,
     mockHistoricalStore,
-    mockMappingStore
   };
 };
 
-const createEventMappingService = (mockMappingStore: any, fetchMappingsMock: any) => {
+const createEventMappingService = (fetchMappingsMock: any) => {
   return EventMappingService.create({
     fetchMappings: fetchMappingsMock,
-    mappingStore: mockMappingStore
   });
 };
 
 const setupTest = (fetchEventsMock: any, fetchMappingsMock = vi.fn().mockResolvedValue(apiMappings)) => {
-  const { mockEventStore, mockHistoricalStore, mockMappingStore } = createTestContext();
-  const mockEventMappingService = createEventMappingService(mockMappingStore, fetchMappingsMock);
+  const { mockEventStore, mockHistoricalStore } = createTestContext();
+  const mockEventMappingService = createEventMappingService(fetchMappingsMock);
 
   const service = SportEventsService.create({
     fetchEvents: fetchEventsMock,
@@ -90,9 +87,8 @@ describe('SportEventsService', () => {
   });
 
   it('outputs human-readable sport event', async () => {
-    const { service, mockEventMappingService } = setupTest(vi.fn().mockResolvedValue(apiSportEvent));
+    const { service } = setupTest(vi.fn().mockResolvedValue(apiSportEvent));
 
-    await mockEventMappingService.startPolling(1000);
     await vi.advanceTimersByTimeAsync(5000);
     await service.startPolling(1000);
     await vi.advanceTimersByTimeAsync(5000);
@@ -111,9 +107,8 @@ describe('SportEventsService', () => {
       .mockResolvedValue({ odds: "" })
       .mockResolvedValue(apiSportEvent);
 
-    const { service, mockEventMappingService } = setupTest(fetchEvents);
+    const { service } = setupTest(fetchEvents);
 
-    await mockEventMappingService.startPolling(1000);
     await service.startPolling(1000);
 
     expect(service.getCurrentEvents()).toEqual(sportEvent);
@@ -133,9 +128,7 @@ describe('SportEventsService', () => {
       .mockResolvedValue({ odds: "" })
       .mockResolvedValue(apiSportEvent);
 
-    const { service, mockEventMappingService } = setupTest(fetchEvents);
-
-    await mockEventMappingService.startPolling(1000);
+    const { service } = setupTest(fetchEvents);
     await service.startPolling(1000);
 
     expect(service.getCurrentEvents()).toEqual(sportEvent);
@@ -160,9 +153,8 @@ describe('SportEventsService', () => {
       .mockResolvedValueOnce(apiSportEvent)
       .mockResolvedValue(apiSportEventWithMalformedEvents);
 
-    const { service, mockEventMappingService } = setupTest(fetchEvents);
+    const { service } = setupTest(fetchEvents);
 
-    await mockEventMappingService.startPolling(1000);
     await service.startPolling(1000);
 
     expect(service.getCurrentEvents()).toEqual(sportEvent);
@@ -183,9 +175,8 @@ describe('SportEventsService', () => {
       .mockResolvedValueOnce(apiSportEvent)
       .mockResolvedValueOnce(apiSportEventWithChangedScore);
 
-    const { service, mockEventMappingService } = setupTest(fetchEvents);
+    const { service } = setupTest(fetchEvents);
 
-    await mockEventMappingService.startPolling(1000);
     await service.startPolling(1000);
     await vi.advanceTimersByTimeAsync(1000);
 
@@ -200,9 +191,8 @@ describe('SportEventsService', () => {
       .mockResolvedValueOnce(apiSportEvent)
       .mockResolvedValueOnce(apiSportEventWithChangedStatus);
 
-    const { service, mockEventMappingService } = setupTest(fetchEvents);
+    const { service } = setupTest(fetchEvents);
 
-    await mockEventMappingService.startPolling(1000);
     await service.startPolling(1000);
     await vi.advanceTimersByTimeAsync(1000);
 
@@ -220,9 +210,7 @@ describe('SportEventsService', () => {
       .mockResolvedValueOnce(apiSportEvent)
       .mockResolvedValueOnce(otherSportEvent);
 
-    const { service, mockEventMappingService } = setupTest(fetchEvents);
-
-    await mockEventMappingService.startPolling(1000);
+    const { service } = setupTest(fetchEvents);
     await vi.advanceTimersByTimeAsync(5000);
     await service.startPolling(1000);
 
@@ -236,9 +224,8 @@ describe('SportEventsService', () => {
     const apiMappingsV1 = createMappings({ liveStatus: "changed_live_status" })
     const fetchMappings = vi.fn().mockResolvedValueOnce(apiMappings).mockResolvedValueOnce(apiMappingsV1).mockResolvedValue(apiMappingsV1);
     const fetchEvents = vi.fn().mockResolvedValue(apiSportEvent)
-    const { service, mockEventMappingService } = setupTest(fetchEvents, fetchMappings);
+    const { service } = setupTest(fetchEvents, fetchMappings);
 
-    await mockEventMappingService.startPolling(1000);
     await vi.advanceTimersByTimeAsync(5000);
     await service.startPolling(1000);
     await vi.advanceTimersByTimeAsync(5000);

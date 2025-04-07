@@ -1,65 +1,72 @@
 import { Logger } from "./logger";
-import { PollingService } from "./polling-service";
-import { ITemporalMappingStore } from "./storage";
 import { FetchMappingsFn, PersistedSportEvent, SportEvent, SportEventScores } from "./types";
 
 export type EventMappingServiceArgs = {
   fetchMappings: FetchMappingsFn;
-  mappingStore: ITemporalMappingStore;
 }
 
 export class EventMappingService {
+  private mappingsVersion: number = 0;
   private readonly fetchMappings: FetchMappingsFn;
-  private readonly mappingStore: ITemporalMappingStore;
-
-  private pollingService: PollingService;
+  private mappings: Record<string, string> = {};
+  private mappingsCache: Map<number, Record<string, string>> = new Map();
 
   public static create(args: EventMappingServiceArgs) {
     return new this(args);
   }
 
-  protected constructor({ mappingStore, fetchMappings }: EventMappingServiceArgs) {
+  protected constructor({ fetchMappings }: EventMappingServiceArgs) {
     this.fetchMappings = fetchMappings;
-    this.mappingStore = mappingStore;
-
-    this.pollingService = PollingService.create({
-      task: this.updateMappings.bind(this),
-      intervalMs: 0,
-      taskName: 'event mappings',
-      errorHandler: (error) => Logger.error("Update event mapping store error", error)
-    });
   }
 
-  async startPolling(intervalMs: number): Promise<void> {
-    this.pollingService.setInterval(intervalMs);
-    await this.pollingService.startPolling();
-  }
-
-  async stopPolling() {
-    this.pollingService.stopPolling();
-  }
-
-  private async updateMappings(): Promise<void> {
+  public async updateMappings(timestamp: string): Promise<void> {
     try {
       const mappingsData = await this.fetchMappings();
+      const mappings = mappingsData.mappings;
+
+      if (!mappings) {
+        Logger.warn("No mappings found. Skipping cache update...");
+        return;
+      }
+
       this.updateMappingStore(mappingsData.mappings);
+      Logger.debug(`Updated mappings cache on demand {timestamp=${timestamp}}`);
     } catch (error) {
-      Logger.error("Update event mapping store error", error);
+      Logger.error("Update mappings cache error", error);
     }
   }
 
   private updateMappingStore(mappings?: string) {
     if (!mappings) {
-      Logger.debug('No mappings exist. Skipping event updates...');
+      Logger.debug('No mappings found. Skipping cache update...');
       return
     }
 
-    const sportsEventPropertyById = mappings.split(";");
-
-    for (const property of sportsEventPropertyById) {
-      const [id, value] = property.split(":");
-      this.mappingStore.set(id, value);
+    try {
+      const parsedMappings = this.parseMappingsString(mappings);
+      if (JSON.stringify(parsedMappings) !== JSON.stringify(this.mappings)) {
+        this.mappingsVersion++;
+        this.mappings = {...parsedMappings};
+        this.mappingsCache.set(this.mappingsVersion, {...parsedMappings});
+        Logger.debug(`Updated mappings {version=${this.mappingsVersion}}`);
+      }
+    } catch (error) {
+      throw new Error('Invalid mappings data', error);
     }
+  }
+
+  private parseMappingsString(mappingsString: string) {
+    const mappings = {};
+    const entries = mappingsString.split(';');
+
+    for (const entry of entries) {
+      const [id, value] = entry.split(':');
+      if (id && value) {
+        mappings[id.trim()] = value.trim();
+      }
+    }
+
+    return mappings;
   }
 
   public transformEvents(sportsEvents: Record<string, PersistedSportEvent>) {
@@ -125,6 +132,12 @@ export class EventMappingService {
       scores: string;
     }
   ) {
+    const mappings = this.getMappingsByVersion(this.mappingsVersion);
+
+    if (!mappings) {
+      throw new Error(`Validation error: missing mappings ${this.mappingsVersion}`);
+    }
+
     const requiredMappings = [
       { id: event.sportId, name: 'sportId' },
       { id: event.competitionId, name: 'competitionId' },
@@ -134,7 +147,7 @@ export class EventMappingService {
     ];
 
     for (const { id, name } of requiredMappings) {
-      if (!this.mappingStore.get(id)) {
+      if (!mappings[id]) {
         throw new Error(`Validation error: missing mapping for {name=${name}; id=${id}}`);
       }
     }
@@ -151,15 +164,15 @@ export class EventMappingService {
 
     for (const period of periods) {
       const [periodType] = period.split('@');
-      if (!this.mappingStore.get(periodType)) {
+      if (!mappings[periodType]) {
         throw new Error(`Validation error: missing mapping for score periodType={${periodType}}`);
       }
     }
   }
 
-  public getMappedCompetitors(homeCompetitorId: string, awayCompetitorId: string, timestamp?: string) {
-    const homeCompetitorName = this.getMappedName(homeCompetitorId, timestamp);
-    const awayCompetitorName = this.getMappedName(awayCompetitorId, timestamp);
+  public getMappedCompetitors(homeCompetitorId: string, awayCompetitorId: string) {
+    const homeCompetitorName = this.getMappedName(homeCompetitorId);
+    const awayCompetitorName = this.getMappedName(awayCompetitorId);
 
     return {
       "HOME": {
@@ -173,7 +186,7 @@ export class EventMappingService {
     }
   }
 
-  public getMappedScores(scores: string, timestamp?: string) {
+  public getMappedScores(scores: string) {
     if (!scores || scores === "N/A") {
       return "N/A"
     }
@@ -185,7 +198,7 @@ export class EventMappingService {
       const [periodType, score] = period.split('@');
       const [homeScore, awayScore] = score.split(':');
 
-      const mappedPeriodType = this.getMappedName(periodType, timestamp)
+      const mappedPeriodType = this.getMappedName(periodType)
 
       scorePeriods[mappedPeriodType] = {
         type: mappedPeriodType,
@@ -197,17 +210,41 @@ export class EventMappingService {
     return scorePeriods;
   }
 
-  public getMappedName(id: string, timestamp?: string) {
-    const mapping = this.mappingStore.get(id, timestamp);
-
-    if (!mapping) {
-      throw new Error(`Validation error: Missing mapping for {id=${id}${timestamp ? `timestamp=${timestamp}` : ""}`);
+  public getMappedName(id: string, maxVersionFallbacks: number = 3) {
+    if (this.mappings[id]) {
+      return this.mappings[id];
     }
 
-    return mapping;
+    let versionChecked = 0;
+    for (let v = this.mappingsVersion - 1;
+         v > 0 && versionChecked < maxVersionFallbacks;
+         v--, versionChecked++) {
+      const versionMappings = this.mappingsCache.get(v);
+      if (versionMappings?.[id]) {
+        return versionMappings[id];
+      }
+    }
+
+    throw new Error(`Validation error: Missing mapping for {id=${id}} in current or last ${maxVersionFallbacks} versions`);
   }
 
-  public getIdByValue(value: string) {
-    return this.mappingStore.getIdByValue(value)
+  public getIdByValue(value: string): string {
+    const foundEntry = Object.entries(this.mappings).find(
+        ([, mappedValue]) => mappedValue.toLowerCase() === value.toLowerCase()
+    );
+
+    if (!foundEntry) {
+      throw new Error(`No ID found for value: ${value}`);
+    }
+
+    return foundEntry[0];
+  }
+
+  public getMappingsByVersion(version: number) {
+    return this.mappingsCache.get(version);
+  }
+
+  public getMappingsVersion() {
+    return this.mappingsVersion;
   }
 }

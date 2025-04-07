@@ -13,7 +13,7 @@ interface ILogLifecycleChangeParams {
 }
 
 interface ILogStatusChangeParams {
-  changeTimestamp: string;
+  timestamp: string;
   eventId: string;
   oldStatusId: string;
   newStatusId: string;
@@ -22,7 +22,7 @@ interface ILogStatusChangeParams {
 interface ILogScoreChangeParams {
   awayCompetitorId: string;
   competitionId: string;
-  changeTimestamp: string;
+  timestamp: string;
   eventId: string;
   homeCompetitorId: string;
   oldHome: string;
@@ -44,6 +44,8 @@ export class SportEventsService {
   private readonly eventStore: EventStore;
   private readonly fetchEvents: FetchEventsFn;
   private readonly historicalEventStore: HistoricalEventStore;
+
+  private isEmptyOdds: boolean;
 
   private pollingService: PollingService;
 
@@ -74,28 +76,64 @@ export class SportEventsService {
     this.pollingService.stopPolling();
   }
 
+  private async refreshMappings(timestamp: string) {
+    let attempts = 0;
+    const MAX_ATTEMPTS = 3;
+    const BASE_DELAY = 1000;
+
+    while (attempts < MAX_ATTEMPTS) {
+      try {
+        await this.eventMappingService.updateMappings(timestamp)
+        return;
+      } catch (error) {
+        attempts++;
+        if (attempts >= MAX_ATTEMPTS) {
+          Logger.error('Max retries exceeded for mappings refresh');
+          throw error;
+        }
+        await new Promise(resolve =>
+            setTimeout(resolve, BASE_DELAY * Math.pow(2, attempts)));
+      }
+    }
+  }
+
   private async updateEvents() {
+    const timestamp = new Date().toISOString();
+    const version = this.eventMappingService.getMappingsVersion()
+
+    if (version === 0) {
+      await this.refreshMappings(timestamp);
+    }
+
     try {
       const eventsData = await this.fetchEvents();
-      await this.updateEventStore(eventsData.odds);
+      const odds = eventsData.odds;
+
+      if (!odds) {
+        this.isEmptyOdds = true;
+        Logger.debug(`Odds API is restarting. {timestamp=${timestamp}}`);
+        return;
+      }
+
+      if (this.isEmptyOdds) {
+        await this.refreshMappings(timestamp);
+        this.isEmptyOdds = false;
+      }
+
+      await this.updateEventStore(odds);
     } catch (error) {
       Logger.error("Update sport event store error", error);
     }
   }
 
-  private async updateEventStore(odds?: string) {
-    if (!odds) {
-      Logger.debug('No odds exist. Skipping event updates...');
-      return;
-    }
+  private async updateEventStore(odds: string) {
+    const timestamp = new Date().toISOString();
 
     const currentEventIds = new Set<string>();
 
     const sportsEvents = odds.split("\n");
 
     for (const sportEvent of sportsEvents) {
-      const changeTimestamp = new Date().toISOString();
-
       const [
         eventId,
         sportId,
@@ -108,21 +146,24 @@ export class SportEventsService {
       ] = sportEvent.split(',');
 
       if (!eventId) {
-        Logger.warn(`Missing eventId. {timestamp=${changeTimestamp}}. Skipping event...`);
+        Logger.warn(`Missing eventId. {timestamp=${timestamp}}. Skipping event...`);
         continue;
       }
 
-      const effectiveScores = scores || "N/A";
-      let effectiveStatus = statusId
+      let effectiveScores: string, effectiveStatus: string;
 
       if (!scores) {
         const pre = this.eventMappingService.getIdByValue("PRE");
 
         if (!pre) {
-          Logger.warn(`Missing PRE mapping for unscored event {eventId=${eventId}}. Skipping event...`);
+          Logger.warn(`Missing PRE mapping for upcoming event {eventId=${eventId}}. Skipping processing event...`);
           continue;
         }
         effectiveStatus = pre;
+        effectiveScores =  "N/A";
+      } else {
+        effectiveScores = scores;
+        effectiveStatus = statusId;
       }
 
       try {
@@ -133,7 +174,7 @@ export class SportEventsService {
           statusId: effectiveStatus,
           homeCompetitorId,
           awayCompetitorId,
-          scores: effectiveScores
+          scores:  effectiveScores,
         });
       } catch (error) {
         Logger.error(`Validation error occurred while processing {eventId=${eventId}}. Skipping processing event...`, error);
@@ -162,26 +203,26 @@ export class SportEventsService {
       }
 
       if (existingEvent.statusId !== effectiveStatus) {
-        this.logStatusChange({ eventId, oldStatusId: existingEvent.statusId, newStatusId: effectiveStatus, changeTimestamp });
+        this.logStatusChange({ eventId, oldStatusId: existingEvent.statusId, newStatusId: effectiveStatus, timestamp });
         existingEvent.statusId = effectiveStatus;
       }
 
       if (existingEvent.scores !== effectiveScores) {
         try {
-          const oldScores = this.eventMappingService.getMappedScores(existingEvent.scores, changeTimestamp);
+          const oldScores = this.eventMappingService.getMappedScores(existingEvent.scores);
           const newScores = this.eventMappingService.getMappedScores(effectiveScores);
 
           Object.keys(newScores).forEach(period => {
             if (!newScores[period]) {
-              Logger.debug(`Missing scores for {period=${period}; eventId=${eventId}; timestamp=${changeTimestamp}}. Score remains unchanged..`);
+              Logger.debug(`Missing scores for {period=${period}; eventId=${eventId}; timestamp=${timestamp}}. Score remains unchanged.`);
               return
-            };
+            }
 
             const oldPeriod = oldScores[period] || { home: '0', away: '0' };
             const newPeriod = newScores[period];
 
             if (oldPeriod.type === newPeriod.type && oldPeriod.home === newPeriod.home && oldPeriod.away === newPeriod.away) {
-              Logger.debug(`Score remains unchanged {period=${oldPeriod.type} eventId=${eventId}; timestamp=${changeTimestamp}}`);
+              Logger.debug(`Score remains unchanged {period=${oldPeriod.type} eventId=${eventId}; timestamp=${timestamp}}`);
               return;
             }
 
@@ -195,7 +236,7 @@ export class SportEventsService {
               oldAway: oldPeriod.away || '0',
               newHome: newPeriod.home || '0',
               newAway: newPeriod.away || '0',
-              changeTimestamp
+              timestamp
             });
           });
 
@@ -242,11 +283,11 @@ export class SportEventsService {
     return this.historicalEventStore.getAll()
   }
 
-  private logStatusChange({ eventId, oldStatusId, newStatusId, changeTimestamp }: ILogStatusChangeParams) {
+  private logStatusChange({ eventId, oldStatusId, newStatusId, timestamp }: ILogStatusChangeParams) {
     try {
-      const oldStatus = this.eventMappingService.getMappedName(oldStatusId, changeTimestamp);
+      const oldStatus = this.eventMappingService.getMappedName(oldStatusId);
       const newStatus = this.eventMappingService.getMappedName(newStatusId);
-      Logger.info(`Event status updated {eventId=${eventId}; timestamp=${new Date(changeTimestamp).toISOString()}}; ${oldStatus} → ${newStatus}`);
+      Logger.info(`Event status updated {eventId=${eventId}; timestamp=${timestamp}}; ${oldStatus} → ${newStatus}`);
     } catch (error) {
       Logger.error(`Error getting status change mappings {eventId=${eventId}}`, error);
     }
@@ -255,7 +296,7 @@ export class SportEventsService {
   private logScoreChange({
     awayCompetitorId,
     competitionId,
-    changeTimestamp,
+    timestamp,
     eventId,
     homeCompetitorId,
     oldHome,
@@ -264,9 +305,9 @@ export class SportEventsService {
     newHome,
     newAway,
   }: ILogScoreChangeParams) {
-    const mappedCompetitors = this.eventMappingService.getMappedCompetitors(homeCompetitorId, awayCompetitorId, changeTimestamp);
+    const mappedCompetitors = this.eventMappingService.getMappedCompetitors(homeCompetitorId, awayCompetitorId);
 
-    Logger.info(`Event score updated {eventId=${eventId}; timestamp=${new Date(changeTimestamp).toISOString()}; competition=${this.eventMappingService.getMappedName(competitionId)}; period=${period}; ${oldHome}-${oldAway} → ${newHome}-${newAway}; competitors=${mappedCompetitors["HOME"].name} VS ${mappedCompetitors["AWAY"].name}}`);
+    Logger.info(`Event score updated {eventId=${eventId}; timestamp=${timestamp}; competition=${this.eventMappingService.getMappedName(competitionId)}; period=${period}; ${oldHome}-${oldAway} → ${newHome}-${newAway}; competitors=${mappedCompetitors["HOME"].name} VS ${mappedCompetitors["AWAY"].name}}`);
   }
 
   private logLifecycleChange({

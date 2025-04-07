@@ -1,4 +1,3 @@
-import { Logger } from "./logger";
 import { PersistedSportEvent, SportEvent } from "./types";
 
 export interface IEventStore {
@@ -42,94 +41,5 @@ export class HistoricalEventStore implements IHistoricalEventStore {
 
   public getAll(): Record<string, SportEvent> {
     return { ...this.store };
-  }
-}
-
-export interface ITemporalMappingStore {
-  set(id: string, value: string): void;
-  get(id: string, timestamp?: string): string | undefined;
-  getVersionAt(id: string, timestamp: string): string | undefined;
-  destroy(): void;
-  getIdByValue(value: string): string | undefined;
-}
-
-export class TemporalMappingStore implements ITemporalMappingStore {
-  private cleanupInterval: NodeJS.Timeout;
-
-  private store: Record<string, Array<{ value: string; timestamp: string }>> = {};
-
-  constructor(private readonly maxAge: number, private readonly interval: number) {
-    this.maxAge = maxAge;
-    this.interval = interval;
-    this.cleanupInterval = setInterval(() => this.cleanupTask(), this.interval);
-  }
-
-  public set(id: string, value: string) {
-    if (!this.store[id]) {
-      this.store[id] = [];
-    }
-    this.store[id].push({
-      value,
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  public get(id: string, timestamp?: string) {
-    const versions = this.store[id];
-
-    if (!versions || versions.length === 0) {
-      return;
-    };
-
-    if (timestamp) {
-      return this.getVersionAt(id, timestamp);
-    }
-
-    return versions[versions.length - 1].value;
-  }
-
-  public getVersionAt(id: string, timestamp: string) {
-    const versions = this.store[id];
-
-    if (!versions) {
-      return;
-    }
-
-    // find the most recent version before the timestamp
-    for (let i = versions.length - 1; i >= 0; i--) {
-      if (versions[i].timestamp <= timestamp) {
-        return versions[i].value;
-      }
-    }
-  }
-
-  public getIdByValue(value: string) {
-    for (const [id, versions] of Object.entries(this.store)) {
-      const currentValue = versions[versions.length - 1]?.value;
-      if (currentValue === value) {
-        return id;
-      }
-    }
-  }
-
-  private cleanupTask() {
-    const now = new Date();
-    const maxAge = new Date(now.getTime() - this.maxAge).toISOString();
-
-    for (const [id, versions] of Object.entries(this.store)) {
-      const firstValidIndex = versions.findIndex(v => v.timestamp >= maxAge);
-
-      if (firstValidIndex > 0) {
-        this.store[id] = versions.slice(firstValidIndex);
-      } else if (firstValidIndex === -1) {
-        delete this.store[id];
-      }
-    }
-
-    Logger.debug(`Cleanup task completed. Current temporal in-memory database size: ${Object.keys(this.store).length} entries`);
-  }
-
-  public destroy() {
-    clearInterval(this.cleanupInterval);
   }
 }

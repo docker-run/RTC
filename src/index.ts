@@ -27,7 +27,6 @@ const startServer = async () => {
       Logger.info('Shutting down server...');
       clearInterval(memoryMonitorInterval);
 
-      eventMappingService.stopPolling();
       sportsEventsService.stopPolling();
 
       server.close(() => {

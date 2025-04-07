@@ -5,8 +5,6 @@ export interface AppConfig {
   pollingIntervalMs: number;
   mappingsApi: string;
   sportEventsApi: string;
-  maxAge: number;
-  temporalMappingStoreIntervalMs: number;
 }
 
 export type SportEventScores = Record<string, { type: string, home: string, away: string }>
