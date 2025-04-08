@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EventMappingService} from "../src/event-mapping-service";
-import { Logger} from "../src/logger";
-import { PersistedSportEvent} from "../src/types";
+import { EventMappingService } from "../src/event-mapping-service";
+import { Logger } from "../src/logger";
+import { PersistedSportEvent } from "../src/types";
 
-// Mock the Logger to suppress logs during testing
 vi.mock('./logger', () => ({
   Logger: {
     debug: vi.fn(),
@@ -38,11 +37,11 @@ describe('EventMappingService', () => {
       const testMappings = 'sport1:Football;comp1:Premier League';
       mockFetchMappings.mockResolvedValue({ mappings: testMappings });
 
-      await mappingService.updateMappings('2025-01-01');
+      await mappingService.updateMappings();
 
       expect(mockFetchMappings).toHaveBeenCalled();
       expect(Logger.debug).toHaveBeenCalledWith(
-          'Updated mappings cache on demand {timestamp=2025-01-01}'
+        'Updated mappings to {version=1}'
       );
       expect(mappingService['mappings']).toEqual({
         sport1: 'Football',
@@ -53,21 +52,21 @@ describe('EventMappingService', () => {
     it('should handle empty mappings', async () => {
       mockFetchMappings.mockResolvedValue({ mappings: undefined });
 
-      await mappingService.updateMappings('2025-01-01');
+      await mappingService.updateMappings();
 
       expect(Logger.warn).toHaveBeenCalledWith(
-          'No mappings found. Skipping cache update...'
+        'Mappings not defined. Skipping cache update...'
       );
     });
 
     it('should handle fetch errors', async () => {
       mockFetchMappings.mockRejectedValue(new Error('Network error'));
 
-      await mappingService.updateMappings('2025-01-01');
+      await mappingService.updateMappings();
 
       expect(Logger.error).toHaveBeenCalledWith(
-          'Update mappings cache error',
-          expect.any(Error)
+        'Failed to update mappings cache',
+        expect.any(Error)
       );
     });
   });
@@ -75,7 +74,7 @@ describe('EventMappingService', () => {
   describe('parseMappingsString', () => {
     it('should parse valid mappings string', () => {
       const result = mappingService['parseMappingsString'](
-          'id1:Value 1;id2:Value 2'
+        'id1:Value 1;id2:Value 2'
       );
       expect(result).toEqual({
         id1: 'Value 1',
@@ -85,7 +84,7 @@ describe('EventMappingService', () => {
 
     it('should ignore malformed entries', () => {
       const result = mappingService['parseMappingsString'](
-          'id1:Value 1;malformed;id2:Value 2'
+        'id1:Value 1;malformed;id2:Value 2'
       );
       expect(result).toEqual({
         id1: 'Value 1',
@@ -210,7 +209,7 @@ describe('EventMappingService', () => {
       };
 
       expect(() => mappingService.verifyEventMappings(event)).toThrow(
-          'Validation error: missing mapping for {name=sportId; id=missing-sport}'
+        'Validation error: missing mapping for {name=sportId; id=missing-sport}'
       );
     });
 
@@ -235,7 +234,7 @@ describe('EventMappingService', () => {
       };
 
       expect(() => mappingService.verifyEventMappings(event)).toThrow(
-          'Validation error: missing mapping for score periodType={missing-period}'
+        'Validation error: missing mapping for score periodType={missing-period}'
       );
     });
   });
@@ -257,7 +256,7 @@ describe('EventMappingService', () => {
 
     it('should throw when value not found', () => {
       expect(() => mappingService.getMappedName('missing')).toThrow(
-          'Validation error: Missing mapping for {id=missing} in current or last 3 versions'
+        'Validation error: Missing mapping for {id=missing} in current or last 3 versions'
       );
     });
   });
@@ -277,7 +276,7 @@ describe('EventMappingService', () => {
 
     it('should throw when value not found', () => {
       expect(() => mappingService.getIdByValue('Tennis')).toThrow(
-          'No ID found for value: Tennis'
+        'No ID found for value: Tennis'
       );
     });
   });
