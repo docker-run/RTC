@@ -133,6 +133,8 @@ export class SportEventsService {
 
     const sportsEvents = odds.split("\n");
 
+    let hasValidationErrors = false;
+
     for (const sportEvent of sportsEvents) {
       const [
         eventId,
@@ -157,6 +159,7 @@ export class SportEventsService {
 
         if (!pre) {
           Logger.warn(`Missing PRE mapping for upcoming event {eventId=${eventId}}. Skipping processing event...`);
+          hasValidationErrors = true;
           continue;
         }
         effectiveStatus = pre;
@@ -178,6 +181,7 @@ export class SportEventsService {
         });
       } catch (error) {
         Logger.error(`Validation error occurred while processing {eventId=${eventId}}. Skipping processing event...`, error);
+        hasValidationErrors = true;
         continue;
       }
 
@@ -248,6 +252,16 @@ export class SportEventsService {
     }
 
     this.handleRemovedEvents(currentEventIds);
+
+    if (hasValidationErrors) {
+      try {
+        Logger.info("Validation errors detected during processing. Refreshing mappings...");
+        await this.refreshMappings();
+        Logger.info("Mappings refreshed successfully");
+      } catch (refreshError) {
+        Logger.error("Failed to refresh mappings after validation errors", refreshError);
+      }
+    }
   }
 
   private handleRemovedEvents(currentEventIds: Set<string>) {
