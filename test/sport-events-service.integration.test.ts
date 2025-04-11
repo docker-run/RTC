@@ -1,12 +1,12 @@
-import {afterEach, beforeAll, describe, expect, it, MockInstance, vi} from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, MockInstance, vi } from 'vitest';
 import { SportEventsService } from '../src/sport-events-service';
 import { createApp } from '../src/app';
 import * as appConfig from '../src/app-config';
 import supertest, { SuperTest, Test } from 'supertest';
-import { sportEventPropertiesById, basketballEvent, createSportEvent, MALFORMED_EVENT_0, MALFORMED_EVENT_1, MALFORMED_EVENT_0_ID, MALFORMED_EVENT_1_ID, FOOTBALL_SPORT_EVENT } from './test-helpers';
 import { Server } from 'http';
 import { Logger } from '../src/logger';
 import * as express from "express";
+import { basketballOdd, EVENT_IDS, footballOdd, malformedOdds, mappings, removedEvent } from "./fixtures";
 
 describe('Application Integration Tests', async () => {
   let app: express.Express;
@@ -25,7 +25,6 @@ describe('Application Integration Tests', async () => {
     return sportsEventsService;
   };
 
-
   beforeAll(async () => {
     vi.spyOn(Logger, 'error');
   })
@@ -36,8 +35,8 @@ describe('Application Integration Tests', async () => {
   });
 
   it("current application state retrieval flow", async () => {
-    fetchMappingsSpy = vi.spyOn(appConfig, "fetchMappings").mockResolvedValue(sportEventPropertiesById);
-    fetchEventsSpy = vi.spyOn(appConfig, "fetchEvents").mockResolvedValue(basketballEvent);
+    fetchMappingsSpy = vi.spyOn(appConfig, "fetchMappings").mockResolvedValue(mappings);
+    fetchEventsSpy = vi.spyOn(appConfig, "fetchEvents").mockResolvedValue(basketballOdd);
     await setupTestApp();
     const res = await request.get('/client/state');
     expect(Object.keys(res.body).length).toBe(1)
@@ -45,26 +44,24 @@ describe('Application Integration Tests', async () => {
 
   it("logs all necessary information about malformed events", async () => {
     vi.useFakeTimers();
-
-    fetchMappingsSpy.mockReturnValue(Promise.resolve(sportEventPropertiesById));
-    fetchEventsSpy.mockReturnValueOnce(Promise.resolve(basketballEvent))
-      .mockReturnValueOnce(Promise.resolve(FOOTBALL_SPORT_EVENT))
-      .mockReturnValueOnce(Promise.resolve({ odds: `${MALFORMED_EVENT_0}\n${MALFORMED_EVENT_1}\n` }));
+    fetchMappingsSpy.mockReturnValue(Promise.resolve(mappings));
+    fetchEventsSpy.mockReturnValueOnce(Promise.resolve(basketballOdd))
+      .mockReturnValueOnce(Promise.resolve(footballOdd))
+      .mockReturnValueOnce(Promise.resolve(malformedOdds));
 
     await setupTestApp();
 
-    const removedSportEvent = createSportEvent({ status: 'REMOVED' });
     const res = await request.get('/client/state');
     await vi.advanceTimersByTimeAsync(1000)
-    expect(sportEventsService.getRemovedEvents()).toEqual(removedSportEvent)
+    expect(sportEventsService.getRemovedEvents()).toEqual(removedEvent)
     await vi.advanceTimersByTimeAsync(1000)
     expect(Object.keys(res.body).length).toBe(1);
     expect(Logger.error).toHaveBeenCalledWith(
-      `Validation error occurred while processing {eventId=${MALFORMED_EVENT_0_ID}}. Skipping processing event...`,
+      `Validation error occurred while processing {eventId=${EVENT_IDS.MALFORMED_0}}. Skipping processing event...`,
       new Error("Validation error: missing mapping for {name=competitionId; id=1709900432183}")
     );
     expect(Logger.error).toHaveBeenLastCalledWith(
-      `Validation error occurred while processing {eventId=${MALFORMED_EVENT_1_ID}}. Skipping processing event...`,
+      `Validation error occurred while processing {eventId=${EVENT_IDS.MALFORMED_1}}. Skipping processing event...`,
       new Error("Validation error: missing mapping for {name=sportId; id=qwerty}")
     )
   })

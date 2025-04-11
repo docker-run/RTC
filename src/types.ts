@@ -1,3 +1,7 @@
+export interface Odds {
+  odds?: string
+}
+
 export type FetchEventsFn = () => Promise<{ odds?: string }>;
 export type FetchMappingsFn = () => Promise<{ mappings?: string }>;
 

@@ -11,6 +11,7 @@ This guide explains how to run and debug the Dockerized Express server that conn
 ```
 src/
 ├── app.ts                        # Initializes services and server
+├── app-config.ts                 # Defines application settings (API endpoints, polling interval) with env variable fallbacks
 ├── index.ts                      # Entry point of the application
 ├── client/
 │   └── index.ts                  # Handles the /client/state endpoint; returns filtered state to clients
