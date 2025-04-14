@@ -1,5 +1,12 @@
 # Real-time Crawlers - Interview Task
 
+<div align="center">
+    <img
+      alt="RTC-test task logo"
+      style="width: auto; height: 320px;"
+      src="./assets/mysterious-crawler.JPG">
+</div>
+
 ## Requirements
 * docker `>=23.0.5`
 * docker-compose `>=2.24.6`
