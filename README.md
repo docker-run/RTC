@@ -7,6 +7,8 @@
       src="./assets/mysterious-crawler.JPG">
 </div>
 
+**Note**: The contents of this file were originally provided by the company as part of the interview task description. If you're looking for my solution to the task, please refer to  [README_SOLUTION.md](README_SOLUTION.md)
+
 ## Requirements
 * docker `>=23.0.5`
 * docker-compose `>=2.24.6`

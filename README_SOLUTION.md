@@ -1,6 +1,23 @@
-# Mysterious Crawler - Solution Guide
-
 This guide explains how to run and debug the Dockerized Express server that connects to the simulation API.
+
+## Contents
+
+* [Sequence Diagram](#sequence-diagram)
+* [Prerequisites](#prerequisites)
+* [Project Structure](#project-structure)
+* [Running the Application](#running-the-application)
+  * [Option 1: Using Docker Compose (Recommended)](#option-1-using-docker-compose-recommended)
+  * [Option 2: Standalone Docker](#option-2-standalone-docker)
+  * [Option 3: Local development (Without Docker)](#option-3-local-development-without-docker)
+* [Debugging](#debugging)
+* [Testing](#testing)
+* [Monitoring](#monitoring)
+* [Cleanup](#cleanup)
+
+## Sequence diagram
+
+![Sequence Diagram](./assets/sequence_diagram.png)
+
 
 ## Prerequisites
 - Docker installed (version 20.10+)
@@ -77,10 +94,7 @@ npm run build
 npm start
 ```
 
-## Debugging 
-
-### Viewing Logs
-
+## Debugging
 For Docker Compose:
 
 ```shell
@@ -93,11 +107,7 @@ Starts the server in debug mode:
 npm run start:debug
 ```
 
-
-## Testing 
-
-### Run tests with:
-
+## Testing
 ```shell
 npm test
 ```
